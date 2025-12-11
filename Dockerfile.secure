@@ -1,0 +1,126 @@
+# Secure Multi-Stage Dockerfile for Kode
+# Build stage
+FROM node:22-alpine AS builder
+
+# Configure registry mirrors (configurable via build args)
+ARG ALPINE_MIRROR=dl-cdn.alpinelinux.org
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+ARG PIP_INDEX_URL=https://pypi.org/simple
+
+# Apply mirror configuration if specified
+RUN if [ "$ALPINE_MIRROR" != "dl-cdn.alpinelinux.org" ]; then \
+      sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_MIRROR}/g" /etc/apk/repositories; \
+    fi
+
+# Install build dependencies with --no-cache for security
+RUN apk add --no-cache \
+    bash \
+    git \
+    python3 \
+    py3-pip \
+    make \
+    g++ \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Configure npm registry
+RUN npm config set registry "${NPM_REGISTRY}"
+
+# Configure pip index
+RUN pip config set global.index-url "${PIP_INDEX_URL}"
+
+# Install bun and remove curl after installation for security
+RUN curl -fsSL https://bun.sh/install | bash \
+    && apk del curl \
+    && rm -rf /var/cache/apk/*
+
+ENV PATH="/root/.bun/bin:$PATH"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package.json ./
+
+# Install pnpm and dependencies
+RUN npm install -g pnpm && \
+    pnpm config set registry "${NPM_REGISTRY}" && \
+    pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN pnpm run build
+
+# Verify files exist after build
+RUN ls -la /app/ && ls -la /app/dist/
+
+# Runtime stage - minimized for security
+FROM node:22-alpine AS runtime
+
+# Add security labels
+LABEL maintainer="ShareAI-lab <ai-lab@foxmail.com>"
+LABEL description="Kode - AI-powered terminal assistant"
+LABEL security.hardened="true"
+
+# Configure registry mirrors (configurable via build args)
+ARG ALPINE_MIRROR=dl-cdn.alpinelinux.org
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+
+# Apply mirror configuration if specified
+RUN if [ "$ALPINE_MIRROR" != "dl-cdn.alpinelinux.org" ]; then \
+      sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_MIRROR}/g" /etc/apk/repositories; \
+    fi
+
+# Install only runtime dependencies with --no-cache
+RUN apk add --no-cache \
+    bash \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Configure npm registry
+RUN npm config set registry "${NPM_REGISTRY}"
+
+# Install bun and remove curl for security
+RUN curl -fsSL https://bun.sh/install | bash \
+    && apk del curl \
+    && rm -rf /var/cache/apk/*
+
+ENV PATH="/root/.bun/bin:$PATH"
+
+# Install tsx globally (required at runtime)
+RUN npm install -g tsx && npm cache clean --force
+
+# Create non-root user for security
+RUN addgroup -g 1001 kode && \
+    adduser -D -u 1001 -G kode kode && \
+    mkdir -p /workspace /app && \
+    chown -R kode:kode /workspace /app
+
+# Create workspace directory with proper permissions
+WORKDIR /workspace
+
+# Copy built application from builder stage
+COPY --from=builder --chown=kode:kode /app/dist /app/dist
+COPY --from=builder --chown=kode:kode /app/package.json /app/package.json
+COPY --from=builder --chown=kode:kode /app/node_modules /app/node_modules
+COPY --from=builder --chown=kode:kode /app/src /app/src
+
+# Switch to non-root user
+USER kode
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD ["/root/.bun/bin/bun", "--version"]
+
+# Set security-conscious environment variables
+ENV NODE_ENV=production \
+    NPM_CONFIG_LOGLEVEL=warn \
+    NPM_CONFIG_AUDIT=true
+
+# Set the entrypoint with security context
+ENTRYPOINT ["/root/.bun/bin/bun", "/app/dist/entrypoints/cli.js", "-c", "/workspace"]
+
+# Expose no ports by default (CLI tool)
+# EXPOSE none
