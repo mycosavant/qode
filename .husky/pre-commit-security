@@ -105,12 +105,13 @@ check_file_sizes() {
     local large_files=0
     
     for file in $(git diff --cached --name-only --diff-filter=ACM); do
+        # Check if file exists (skip deleted files)
         if [ -f "$file" ]; then
-            local size=$(wc -c < "$file")
+            local size=$(wc -c < "$file" 2>/dev/null || echo "0")
             if [ $size -gt $max_size ]; then
                 # Format size (use numfmt if available, otherwise show bytes)
                 if command -v numfmt >/dev/null 2>&1; then
-                    local size_formatted=$(numfmt --to=iec-i --suffix=B $size)
+                    local size_formatted=$(numfmt --to=iec-i --suffix=B $size 2>/dev/null || echo "${size} bytes")
                 else
                     local size_formatted="${size} bytes"
                 fi

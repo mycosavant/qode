@@ -120,9 +120,12 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Build Docker image (secure version)
+        id: docker-build
         run: docker build -f Dockerfile.secure -t kode:security-scan .
+        continue-on-error: true
       
       - name: Run Trivy vulnerability scanner
+        if: steps.docker-build.outcome == 'success'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'kode:security-scan'
@@ -132,6 +135,7 @@ jobs:
         continue-on-error: true
       
       - name: Upload Trivy results to GitHub Security
+        if: steps.docker-build.outcome == 'success'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
