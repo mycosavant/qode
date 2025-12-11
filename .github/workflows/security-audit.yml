@@ -59,7 +59,8 @@ jobs:
       - name: Check licenses
         run: |
           license-checker --summary
-          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0' || true
+          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0'
+        continue-on-error: true
 
   secret-scan:
     name: Secret Scanning
@@ -119,7 +120,6 @@ jobs:
       
       - name: Build Docker image (secure version)
         run: docker build -f Dockerfile.secure -t kode:security-scan .
-        continue-on-error: true
       
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

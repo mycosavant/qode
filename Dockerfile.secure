@@ -110,9 +110,9 @@ COPY --from=builder --chown=kode:kode /app/src /app/src
 # Switch to non-root user
 USER kode
 
-# Add healthcheck
+# Add healthcheck (accessible via PATH)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["/root/.bun/bin/bun", "--version"]
+    CMD ["bun", "--version"]
 
 # Set security-conscious environment variables
 ENV NODE_ENV=production \

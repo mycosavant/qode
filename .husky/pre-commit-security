@@ -52,9 +52,11 @@ check_secrets() {
     )
     
     for file in $files; do
-        # Skip binary files
-        if file "$file" | grep -q "binary"; then
-            continue
+        # Skip binary files (use file command if available, otherwise skip check)
+        if command -v file >/dev/null 2>&1; then
+            if file "$file" 2>/dev/null | grep -q "binary"; then
+                continue
+            fi
         fi
         
         # Skip lock files and generated files
@@ -106,7 +108,13 @@ check_file_sizes() {
         if [ -f "$file" ]; then
             local size=$(wc -c < "$file")
             if [ $size -gt $max_size ]; then
-                echo -e "${YELLOW}⚠️  Large file detected: $file ($(numfmt --to=iec-i --suffix=B $size))${NC}"
+                # Format size (use numfmt if available, otherwise show bytes)
+                if command -v numfmt >/dev/null 2>&1; then
+                    local size_formatted=$(numfmt --to=iec-i --suffix=B $size)
+                else
+                    local size_formatted="${size} bytes"
+                fi
+                echo -e "${YELLOW}⚠️  Large file detected: $file ($size_formatted)${NC}"
                 echo -e "${YELLOW}Consider using Git LFS for large files${NC}"
                 large_files=1
             fi
