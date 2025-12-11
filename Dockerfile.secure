@@ -82,21 +82,22 @@ RUN apk add --no-cache \
 # Configure npm registry
 RUN npm config set registry "${NPM_REGISTRY}"
 
-# Install bun and remove curl for security
-RUN curl -fsSL https://bun.sh/install | bash \
-    && apk del curl \
-    && rm -rf /var/cache/apk/*
-
-ENV PATH="/root/.bun/bin:$PATH"
-
-# Install tsx globally (required at runtime)
-RUN npm install -g tsx && npm cache clean --force
-
 # Create non-root user for security
 RUN addgroup -g 1001 kode && \
     adduser -D -u 1001 -G kode kode && \
-    mkdir -p /workspace /app && \
-    chown -R kode:kode /workspace /app
+    mkdir -p /workspace /app /home/kode/.bun && \
+    chown -R kode:kode /workspace /app /home/kode
+
+# Install bun and remove curl for security
+# Install globally so both root and non-root users can access it
+RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash \
+    && apk del curl \
+    && rm -rf /var/cache/apk/*
+
+ENV PATH="/usr/local/bin:$PATH"
+
+# Install tsx globally (required at runtime)
+RUN npm install -g tsx && npm cache clean --force
 
 # Create workspace directory with proper permissions
 WORKDIR /workspace
@@ -120,7 +121,7 @@ ENV NODE_ENV=production \
     NPM_CONFIG_AUDIT=true
 
 # Set the entrypoint with security context
-ENTRYPOINT ["/root/.bun/bin/bun", "/app/dist/entrypoints/cli.js", "-c", "/workspace"]
+ENTRYPOINT ["bun", "/app/dist/entrypoints/cli.js", "-c", "/workspace"]
 
 # Expose no ports by default (CLI tool)
 # EXPOSE none

@@ -59,8 +59,9 @@ jobs:
       - name: Check licenses
         run: |
           license-checker --summary
-          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0'
-        continue-on-error: true
+          # License check is informational only - does not fail the build
+          # Adjust allowed licenses based on your organization's policy
+          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0' || echo "::warning::Some dependencies may have non-standard licenses"
 
   secret-scan:
     name: Secret Scanning
