@@ -42,7 +42,10 @@
     "typecheck": "tsc --noEmit",
     "prepare": "",
     "publish:dev": "node scripts/publish-dev.js",
-    "publish:release": "node scripts/publish-release.js"
+    "publish:release": "node scripts/publish-release.js",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:check": "npm run security:audit && npm outdated",
+    "security:fix": "npm audit fix"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.12.6",
