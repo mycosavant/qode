@@ -48,9 +48,9 @@
     "security:fix": "npm audit fix"
   },
   "dependencies": {
-    "@anthropic-ai/bedrock-sdk": "^0.12.6",
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@anthropic-ai/vertex-sdk": "^0.7.0",
+    "@anthropic-ai/bedrock-sdk": "^0.26.0",
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@anthropic-ai/vertex-sdk": "^0.14.0",
     "@commander-js/extra-typings": "^13.1.0",
     "@inkjs/ui": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.15.1",
@@ -98,7 +98,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.1.0",
     "bun-types": "latest",
-    "esbuild": "^0.25.9",
+    "esbuild": "^0.27.1",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2"
   }
