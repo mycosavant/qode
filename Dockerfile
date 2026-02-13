@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Configure Alpine to use China mirrors
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
@@ -45,7 +45,7 @@ RUN pnpm run build
 RUN ls -la /app/
 
 # Runtime stage
-FROM node:22-alpine AS runtime
+FROM node:25-alpine AS runtime
 
 # Configure Alpine to use China mirrors
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
